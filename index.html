@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register, Login, and To-Do</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            margin-top: 50px;
+        }
+
+        #register-form, #login-form, #todo-form {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
+        }
+
+        #todo-list {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <div id="register-form">
+                    <h2>Register</h2>
+                    <form>
+                        <div class="form-group">
+                            <label for="register-email">Email</label>
+                            <input type="email" class="form-control" id="register-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password">Password</label>
+                            <input type="password" class="form-control" id="register-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Register</button>
+                        <p class="mt-3">Already have an account? <a href="#" id="show-login">Login here</a></p>
+                    </form>
+                </div>
+
+                <div id="login-form" style="display: none;">
+                    <h2>Login</h2>
+                    <form>
+                        <div class="form-group">
+                            <label for="login-email">Email</label>
+                            <input type="email" class="form-control" id="login-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Password</label>
+                            <input type="password" class="form-control" id="login-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                        <p class="mt-3">Don't have an account? <a href="#" id="show-register">Register here</a></p>
+                    </form>
+                </div>
+
+                <div id="todo-form" style="display: none;">
+                    <h2>To-Do List</h2>
+                    <form id="add-todo-form">
+                        <div class="form-group">
+                            <label for="todo-title">Title</label>
+                            <input type="text" class="form-control" id="todo-title" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="todo-description">Description</label>
+                            <textarea class="form-control" id="todo-description" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="todo-date">Date</label>
+                            <input type="date" class="form-control" id="todo-date" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Task</button>
+                    </form>
+                    <ul id="todo-list" class="list-group mt-3"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            let users = []; // Array to store user data
+            let todos = []; // Array to store to-do items
+            let currentUser = null; // Current logged-in user
+
+            $('#show-login').click(function(event) {
+                event.preventDefault();
+                $('#register-form').hide();
+                $('#login-form').show();
+            });
+
+            $('#show-register').click(function(event) {
+                event.preventDefault();
+                $('#login-form').hide();
+                $('#register-form').show();
+            });
+
+            // Register form submission
+            $('#register-form form').submit(function(event) {
+                event.preventDefault();
+                const email = $('#register-email').val();
+                const password = $('#register-password').val();
+
+                // Check if user already exists
+                const userExists = users.some(user => user.email === email);
+
+                if (userExists) {
+                    alert('User already exists. Please try logging in.');
+                } else {
+                    const user = {
+                        email: email,
+                        password: password,
+                        uid: generateUID()
+                    };
+                    users.push(user);
+                    alert('Registration successful. You can now log in.');
+                    $('#register-email').val('');
+                    $('#register-password').val('');
+                    $('#register-form').hide();
+                    $('#login-form').show();
+                }
+            });
+
+            // Login form submission
+            $('#login-form form').submit(function(event) {
+                event.preventDefault();
+                const email = $('#login-email').val();
+                const password = $('#login-password').val();
+
+                // Check if user exists and password matches
+                const user = users.find(user => user.email === email && user.password === password);
+
+                if (user) {
+                    alert('Login successful. Welcome!');
+                    currentUser = user;
+                    $('#login-form').hide();
+                    $('#todo-form').show();
+                    displayTodos();
+                } else {
+                    alert('Invalid email or password.');
+                }
+            });
+
+            // Add to-do form submission
+            $('#add-todo-form').submit(function(event) {
+                event.preventDefault();
+                const title = $('#todo-title').val();
+                const description = $('#todo-description').val();
+                const date = $('#todo-date').val();
+                const id = generateUID();
+                const createdAt = new Date();
+                const status = 'pending';
+
+                const todo = {
+                    title,
+                    description,
+                    date,
+                    id,
+                    status,
+                    createdAt,
+                    user_id: currentUser.uid
+                };
+
+                todos.push(todo);
+                $('#todo-title').val('');
+                $('#todo-description').val('');
+                $('#todo-date').val('');
+                displayTodos();
+            });
+
+            // Function to display to-do items
+            function displayTodos() {
+                const todoList = $('#todo-list');
+                todoList.empty();
+
+                const userTodos = todos.filter(todo => todo.user_id === currentUser.uid);
+
+                userTodos.forEach(todo => {
+                    const todoItem = $(`
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5>${todo.title}</h5>
+                                <p>${todo.description}</p>
+                                <small>${todo.date}</small>
+                            </div>
+                            <div>
+                                <button class="btn btn-success btn-sm mr-2" onclick="markCompleted('${todo.id}')">Complete</button>
+                                <button class="btn btn-danger btn-sm" onclick="removeTask('${todo.id}')">Remove</button>
+                            </div>
+                        </li>
+                    `);
+                    todoList.append(todoItem);
+                });
+            }
+
+            // Function to remove a task
+            window.removeTask = function(id) {
+                todos = todos.filter(todo => todo.id !== id);
+                displayTodos();
+            };
+
+            // Function to mark a task as completed
+            window.markCompleted = function(id) {
+                const todo = todos.find(todo => todo.id === id);
+                if (todo) {
+                    todo.status = 'completed';
+                    displayTodos();
+                }
+            };
+
+            // Function to generate unique ID
+            function generateUID() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+        });
+        
+    </script>
+</body>
+</html>
